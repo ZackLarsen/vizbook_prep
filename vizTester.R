@@ -31,37 +31,131 @@ View(midwest)
 
 # Histograms and density plots --------------------------------------------
 
+# stat_bin() is suitable only for continuous x data. If your x data is discrete, you probably want to use stat_count()
+
 diamonds$carat
 diamonds$depth
 diamonds$price
 
 
+
 h1 <- ggplot(data = diamonds,
             mapping = aes(x = price))
-h1 + geom_histogram(fill = "red", color = "black")
+
+h1 + geom_histogram(fill = "black", color = "red")
+h1 + geom_histogram(fill = "blue", color = "black", binwidth = 500)
+h1 + geom_histogram(fill = "red", color = "black", binwidth = 250)
+h1 + geom_histogram(fill = "pink", color = "black", bins = 10)
+
+h1 + geom_histogram(fill = "pink", color = "black", bins = 30) +
+  labs(title="Pink histogram", y="Count of points in bin", x="Diamond price",
+       caption="Data source: diamonds") + 
+  theme(plot.title=element_text(size=30, 
+                              face="bold", 
+                              family="American Typewriter",
+                              color="grey",
+                              hjust=0.5,
+                              lineheight=1.5),  # title
+      plot.subtitle=element_text(size=15, 
+                                 family="American Typewriter",
+                                 face="bold",
+                                 hjust=0.5),  # subtitle
+      plot.caption=element_text(size=10),  # caption
+      axis.title.x=element_text(vjust=-2,  
+                                size=15),  # X axis title
+      axis.title.y=element_text(size=15),  # Y axis title
+      axis.text.x=element_text(size=10, 
+                               angle=30,
+                               vjust=0.5),  # X axis text
+      axis.text.y=element_text(size=10))  # Y axis text
+
+
+# To make it easier to compare distributions with very different counts,
+# put density on the y axis instead of the default count
+ggplot(diamonds, aes(price, stat(density), colour = cut)) +
+  geom_freqpoly(binwidth = 500)
 
 
 
 h2 <- ggplot(data = diamonds,
             mapping = aes(x = price, fill = cut))
+
 h2 + geom_histogram(alpha = 0.4, bins = 20)
+h2 + geom_histogram(alpha = 0.6, bins = 40)
+h2 + geom_histogram(alpha = 0.8, bins = 20)
 
 
 
 
-
-p <- ggplot(diamonds, aes(depth, fill = cut(depth, 100))) +
-  geom_histogram(show.legend = FALSE) +
+h3 <- ggplot(diamonds, aes(price, fill = cut(price, 100))) +
+  geom_histogram(show.legend = FALSE, bins = 50) +
   theme_minimal() +
-  labs(x = "Price", y = "n") +
-  ggtitle("Histogram of diamond depth")
+  labs(x = "Price", y = "n")
 
-p + scale_fill_discrete(h = c(180, 360), c = 150, l = 80)
+h3 + scale_fill_discrete(h = c(180, 360), c = 150, l = 80)
+
+h3 + scale_fill_discrete(h = c(180, 360), c = 150, l = 80) +
+  labs(title="Rad histogram") +
+  theme(plot.background=element_rect(fill="salmon"), 
+        plot.margin = unit(c(1, 2, 1, 1), "cm"),
+        plot.title=element_text(size=30, 
+                        face="bold", 
+                        family="American Typewriter",
+                        color="cyan",
+                        hjust=0.5,
+                        lineheight=1.5))
+
+
+# Faceting with CUSTOM binwidth function
+ggplot(data = diamonds, aes(x = price)) +
+  geom_histogram(binwidth = function(x) 2 * IQR(x) / (length(x)^(1/3))) +
+  facet_wrap(~cut)
+# Using density instead of count for a more even comparison across facets:
+ggplot(data = diamonds, aes(x = price, stat(density))) +
+  geom_histogram(fill = "tomato", color = "black",
+                 binwidth = function(x) 2 * IQR(x) / (length(x)^(1/3))) +
+  facet_wrap(~cut)
 
 
 
 
 
+
+
+
+
+
+# Bokeh histogram
+# 600 X 400 is a good figure to start with for the Viewer, but you
+# might want more than that if you are going to zoom because it will
+# not automatically adjust like ggplot
+figure(width = 600, height = 400, legend_location = "top_right") %>%
+  ly_hist(price, data = diamonds, breaks = 40, freq = FALSE) %>%
+  ly_density(price, data = diamonds)
+
+figure(width = 600, height = 400, legend_location = "top_right") %>%
+  ly_hist(price, data = diamonds, breaks = 40, freq = FALSE, hover = (price)) %>%
+  ly_density(price, data = diamonds)
+
+
+
+
+
+
+
+# Plotly histogram
+
+
+
+
+
+
+
+
+
+
+
+# Density
 
 
 d1 <- ggplot(data = diamonds,
@@ -154,6 +248,18 @@ ggplot(d, aes(a, b, color = pc, alpha = 1/density)) +
   theme_minimal() +
   scale_color_gradient(low = "#32aeff", high = "#f2aeff") +
   scale_alpha(range = c(.25, .6))
+
+
+
+
+# rbokeh
+figure() %>%
+  ly_points(Sepal.Length, Sepal.Width, data = iris, color = Species)
+
+
+
+
+
 
 
 
