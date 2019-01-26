@@ -5,8 +5,14 @@
 
 library(pacman)
 p_load(tidyverse, magrittr, rbokeh, plotly, ggthemes, ggbeeswarm, cowplot,
-       ggalt, scales, ggcorrplot, ggExtra)
+       ggalt, scales, ggcorrplot, ggExtra, RColorBrewer, randomcoloR, MASS,
+       d3heatmap)
 
+R.Version()
+
+# Remember: cufflinks is a great binding for pandas and plotly,
+# and yellowbrick road is great for pandas and scikit-learn
+# http://www.scikit-yb.org/en/latest/
 
 # data --------------------------------------------------------------------
 
@@ -145,6 +151,10 @@ figure(width = 600, height = 400, legend_location = "top_right") %>%
 
 # Plotly histogram
 
+plot_ly(x = ~diamonds$price,
+        type = "histogram",
+        histnorm = "probability",
+        alpha = 0.5)
 
 
 
@@ -155,8 +165,7 @@ figure(width = 600, height = 400, legend_location = "top_right") %>%
 
 
 
-# Density
-
+# Density -----------------------------------------------------------------
 
 d1 <- ggplot(data = diamonds,
             mapping = aes(x = price, fill = cut, color = cut))
@@ -171,7 +180,20 @@ d2 + geom_density(alpha = 0.3, mapping = aes(y = ..scaled..))
 
 
 
-# Boxplots / violin plots -------------------------------------------------
+
+
+
+# rbokeh
+figure(width = 600, height = 400, legend_location = "top_right") %>%
+#  ly_hist(price, data = diamonds, breaks = 40, freq = FALSE, hover = (price)) %>%
+  ly_density(price, data = diamonds, color = "red")
+
+
+
+
+
+
+# Boxplots -------------------------------------------------
 
 x1 <- ggplot(data = diamonds,
             mapping = aes(x = cut, y = price)) +
@@ -199,16 +221,124 @@ x2 + geom_boxplot(fill = "lightpink") +
 
 
 
+# rbokeh
+
+figure(ylab = "Height (inches)", width = 600) %>%
+  ly_boxplot(voice.part, height, data = lattice::singer)
+
+figure(data = lattice::singer) %>%
+  ly_points(catjitter(voice.part), jitter(height), color = "black") %>%
+  ly_boxplot(voice.part, height, with_outliers = FALSE)
+
+
+
+
+
+# plotly
+p <- plot_ly(midwest, x = ~percollege, color = ~state, type = "box")
+p
+
+p <- plot_ly(y = ~rnorm(50), type = "box") %>%
+  add_trace(y = ~rnorm(50, 1))
+p
+
+p <- plot_ly(x = ~rnorm(50), type = "box") %>%
+  add_trace(x = ~rnorm(50, 1))
+p
+
+
+
+p <- plot_ly(ggplot2::diamonds, y = ~price, color = ~cut, type = "box")
+p
+
+
+
+
+
+# violin plots ------------------------------------------------------------
+
+p <- ggplot(mtcars, aes(factor(cyl), mpg))
+p + geom_violin(fill = "grey80", colour = "#3366FF")
+p + geom_violin() + geom_jitter(height = 0, width = 0.1)
+
+p + geom_violin(aes(fill = cyl))
+
+
+
+
+data(Boston)
+dt.long <- gather(Boston, "variable",
+                  "value", crim:medv)
+
+col <- colorRampPalette(c("red", "blue"))(14)
+# col.bp <- brewer.pal(9, "Set1") # brewer.pal only has a max of 9 colors
+col.rc <- as.vector(distinctColorPalette(14))
+
+ggplot(dt.long,aes(factor(variable), value))+
+  geom_violin(aes(fill=factor(variable)))+
+  geom_boxplot(alpha=0.3, color="black", width=.1)+
+  labs(x = "", y = "")+
+  theme_bw()+
+  theme(legend.title = element_blank())+
+  facet_wrap(~variable, scales="free")
+
+
+
+
+
+
+# rbokeh
+
+
+
+
+
+
+# plotly
+df <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/violin_data.csv")
+
+p <- df %>%
+  plot_ly(
+    x = ~day,
+    y = ~total_bill,
+    split = ~day,
+    type = 'violin',
+    box = list(
+      visible = T
+    ),
+    meanline = list(
+      visible = T
+    )
+  ) %>% 
+  layout(
+    xaxis = list(
+      title = "Day"
+    ),
+    yaxis = list(
+      title = "Total Bill",
+      zeroline = F
+    )
+  )
+
+p
+
+
+
+
 # Beeswarm ----------------------------------------------------------------
 
+ggplot(iris,aes(Species, Sepal.Length)) + geom_beeswarm()
 
-b1 <- ggplot(diamonds, 
-             aes(x = cut,
-                 y = price)) 
 
-b1 + geom_beeswarm(color = "red", 
-                   groupOnX = FALSE) +
-  labs(title ="Beeswarm Plot of Cut")
+
+
+
+# rbokeh
+
+
+
+
+# plotly
 
 
 
@@ -259,6 +389,23 @@ figure() %>%
 
 
 
+idx <- split(1:150, iris$Species)
+figs <- lapply(idx, function(x) {
+  figure(width = 300, height = 300) %>%
+    ly_points(Sepal.Length, Sepal.Width, data = iris[x, ],
+              hover = list(Sepal.Length, Sepal.Width))
+})
+
+# 1 row, 3 columns
+grid_plot(figs)
+
+
+
+
+
+
+
+
 
 
 
@@ -281,11 +428,15 @@ ggcorrplot(corr, hc.order = TRUE,
 
 # Bar charts --------------------------------------------------------------
 
-b1 <- ggplot(data = ,
-            mapping = aes(x = , y = , fill = ))
+b1 <- ggplot(data = diamonds,
+            mapping = aes(x = cut, y = price, fill = color))
 
-b1 + geom_bar(position = "dodge", stat = "identity") + 
+b2 <- b1 + geom_bar(position = "dodge", stat = "identity") + 
   theme(legend.position = "top")
+
+# Make the above ggplot graph interactive with simple call to ggplotly():
+ggplotly(b2)
+
 
 
 
@@ -307,6 +458,51 @@ ggplot(mtcars, aes(x=`car name`, y=mpg_z, label=mpg_z)) +
   labs(subtitle="Normalised mileage from 'mtcars'", 
        title= "Diverging Bars") + 
   coord_flip()
+
+
+
+
+
+# rbokeh
+
+# total yield per variety
+figure() %>%
+  ly_bar(variety, yield, data = lattice::barley, hover = TRUE) %>%
+  theme_axis("x", major_label_orientation = 90)
+
+
+
+
+
+
+# plotly
+
+p <- ggplot(data = diamonds, aes(x = cut, fill = clarity)) +
+  geom_bar(position = "dodge")
+ggplotly(p)
+
+
+
+
+
+
+# Proportional bar chart --------------------------------------------------
+
+
+
+# rbokeh
+# proportional bars
+figure() %>%
+  ly_bar(variety, yield, color = year,
+         data = lattice::barley, position = "fill", width = 1) %>%
+  theme_axis("x", major_label_orientation = 90) %>%
+  set_palette(discrete_color = pal_color(c("red", "blue")))
+# swap axes and use different palette
+figure() %>%
+  ly_bar(yield, variety, color = year,
+         data = lattice::barley, position = "fill") %>%
+  set_palette(discrete_color = pal_color(c("red", "blue")))
+
 
 # cumulative empirical distribution ---------------------------------------
 
@@ -345,13 +541,60 @@ ggplot(mtcars, aes(x=`car name`, y=mpg_z, label=mpg_z)) +
 
 # Heatmaps ----------------------------------------------------------------
 
+# Create dataset with three columns: year, month, and count of something:
+df <- as.data.frame(airquality)
+df
+
+res <- ggplot(df, aes(Day, Month)) + geom_tile(aes(fill = Ozone),colour = "white") +
+  scale_fill_gradient(low = "#d8e1cf", high = "#438484") +  
+  guides(fill=guide_legend(title="Total Ozone")) +
+  labs(title = "Atmospheric Ozone by Month and Day",
+       x = "Day", y = "Month") +
+  theme_minimal() 
+res
+
+ggplotly(res)
+
+
+
+
+
+
+
+# rbokeh
+
+
+
+
+
+
+
+# plotly
+
+vals <- unique(scales::rescale(c(volcano)))
+o <- order(vals, decreasing = FALSE)
+cols <- scales::col_numeric("Blues", domain = NULL)(vals)
+colz <- setNames(data.frame(vals[o], cols[o]), NULL)
+p <- plot_ly(z = volcano, colorscale = colz, type = "heatmap")
+p
+
+
+
+
+
+# d3
+d3heatmap(mtcars, scale="column", colors="Blues")
+
+
+
+
 
 # Calendar heatmaps
 
 
 # Density / hexbins -------------------------------------------------------
 
-
+figure() %>% ly_hexbin(rnorm(10000), rnorm(10000))
 
 
 
@@ -393,9 +636,24 @@ print(treeMapPlot)
 
 
 
-# Love (dot) plots --------------------------------------------------------
+# Love (lollipop) plots --------------------------------------------------------
 
 
+
+
+# Dot plots ---------------------------------------------------------------
+
+ggplot(diamonds, aes(x = price)) +
+  geom_dotplot() + 
+  labs(title = "Proportion by price",
+       y = "Proportion",
+       x = "Price")
+
+ggplot(diamonds, aes(x = price)) +
+  geom_dotplot(binwidth = 500) + 
+  labs(title = "Proportion by price",
+       y = "Proportion",
+       x = "Price")
 
 
 # Dumbbell plots ----------------------------------------------------------
@@ -442,7 +700,9 @@ plot(gg)
 
 # Maps --------------------------------------------------------------------
 
-
+gmap(lat = 40.74, lng = -73.95, zoom = 11,
+     width = 600, height = 600,
+     map_style = gmap_style("blue_water"))
 
 
 
