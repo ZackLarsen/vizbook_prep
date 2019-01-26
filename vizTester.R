@@ -6,7 +6,7 @@
 library(pacman)
 p_load(tidyverse, magrittr, rbokeh, plotly, ggthemes, ggbeeswarm, cowplot,
        ggalt, scales, ggcorrplot, ggExtra, RColorBrewer, randomcoloR, MASS,
-       d3heatmap)
+       d3heatmap, ggridges, r2d3, gridExtra, viridis, ggrepel, lubridate)
 
 R.Version()
 
@@ -486,6 +486,72 @@ ggplotly(p)
 
 
 
+# PCA ---------------------------------------------------------------------
+
+
+pcaCars <- princomp(mtcars, cor = TRUE)
+
+# proportion of variance explained
+summary(pcaCars)
+
+# scree plot
+plot(pcaCars, type = "l")
+
+# cluster cars
+carsHC <- hclust(dist(pcaCars$scores), method = "ward.D2")
+
+# dendrogram
+plot(carsHC)
+
+# cut the dendrogram into 3 clusters
+carsClusters <- cutree(carsHC, k = 3)
+
+# add cluster to data frame of scores
+carsDf <- data.frame(pcaCars$scores, "cluster" = factor(carsClusters))
+carsDf <- transform(carsDf, cluster_name = paste("Cluster",carsClusters))
+
+
+
+
+# ggplot2
+p1 <- ggplot(carsDf,aes(x=Comp.1, y=Comp.2)) +
+  theme_classic() +
+  geom_hline(yintercept = 0, color = "gray70") +
+  geom_vline(xintercept = 0, color = "gray70") +
+  geom_point(aes(color = cluster), alpha = 0.55, size = 3) +
+  xlab("PC1") +
+  ylab("PC2") + 
+  xlim(-5, 6) + 
+  ggtitle("PCA Clusters from Hierarchical Clustering of Cars Data") 
+
+p1 + geom_text(aes(y = Comp.2 + 0.25, label = rownames(carsDf)))
+
+
+# ggplot2 with ggrepel
+p1 + geom_text_repel(aes(y = Comp.2 + 0.25, label = rownames(carsDf))) 
+
+
+
+
+
+
+
+# plotly
+
+p <- plot_ly(carsDf, x = carsDf$Comp.1 , y = carsDf$Comp.2, 
+             text = rownames(carsDf),
+             mode = "markers", 
+             color = carsDf$cluster_name, 
+             marker = list(size = 11)) 
+
+p <- layout(p, title = "PCA Clusters from Hierarchical Clustering of Cars Data", 
+            xaxis = list(title = "PC 1"),
+            yaxis = list(title = "PC 2"))
+
+p
+
+
+
 # Proportional bar chart --------------------------------------------------
 
 
@@ -512,6 +578,51 @@ figure() %>%
 
 
 # ridgeline plots ---------------------------------------------------------
+
+# https://cran.r-project.org/web/packages/ggridges/vignettes/introduction.html
+
+ggplot(lincoln_weather, aes(x = `Mean Temperature [F]`, y = `Month`, fill = ..x..)) +
+  geom_density_ridges_gradient(scale = 3, rel_min_height = 0.01) +
+  scale_fill_viridis(name = "Temp. [F]", option = "C") +
+  labs(title = 'Temperatures in Lincoln NE in 2016')
+
+ggplot(iris, aes(x=Sepal.Length, y=Species, fill=factor(..quantile..))) +
+  stat_density_ridges(geom = "density_ridges_gradient", calc_ecdf = TRUE, quantiles = c(0.025, 0.975)) +
+  scale_fill_manual(
+    name = "Probability", values = c("#FF0000A0", "#A0A0A0A0", "#0000FFA0"),
+    labels = c("(0, 0.025]", "(0.025, 0.975]", "(0.975, 1]")
+  )
+
+ggplot(iris, aes(x=Sepal.Length, y=Species, fill=factor(..quantile..))) +
+  stat_density_ridges(
+    geom = "density_ridges_gradient", calc_ecdf = TRUE,
+    quantiles = 4, quantile_lines = TRUE
+  ) +
+  scale_fill_viridis(discrete = TRUE, name = "Quartiles")
+
+ggplot(diamonds, aes(x = price, y = cut, fill = cut)) + 
+  geom_density_ridges(scale = 4) + 
+  scale_fill_cyclical(values = c("blue", "green"))
+
+
+ggplot(iris, aes(x = Sepal.Length, y = Species)) + geom_density_ridges(scale = 0.9)
+ggplot(iris, aes(x = Sepal.Length, y = Species)) + geom_density_ridges(scale = 1)
+ggplot(iris, aes(x = Sepal.Length, y = Species)) + geom_density_ridges(scale = 5)
+
+
+ggplot(iris, aes(x = Sepal.Length, y = Species, height = ..density..)) + 
+  geom_density_ridges(stat = "binline", bins = 20, scale = 0.95, draw_baseline = FALSE)
+
+
+ggplot(iris, aes(x = Sepal.Length, y = Species)) + geom_density_ridges() + theme_ridges()
+
+ggplot(iris, aes(x = Sepal.Length, y = Species, fill = Species)) + 
+  geom_density_ridges(alpha=0.6, bandwidth=4) + 
+  scale_fill_viridis(discrete=TRUE) +
+  scale_color_viridis(discrete=TRUE) +
+  theme_ridges(center_axis_labels = TRUE) +
+  scale_x_continuous(expand = c(0.01, 0)) +
+  scale_y_discrete(expand = c(0.01, 0))
 
 
 
@@ -541,10 +652,218 @@ figure() %>%
 
 # Heatmaps ----------------------------------------------------------------
 
+# Generate random date ranges:
+start_date <- as.Date("2014/1/1")
+end_date <- as.Date("2014/12/31")
+
+seq(start_date, end_date, "days")
+sample(seq(start_date, end_date, by="day"), 6)
+
+seq(start_date, start_date + 6, "days")
+
+# Make a vector of 6 start dates:
+start_dates <- sample(seq(start_date, end_date, by="day"), 100)
+start_dates
+
+# Make a vector of 6 end dates:
+end_dates <- sample(seq(start_date, end_date, by="day"), 100)
+end_dates
+
+# Make a data frame with 2 columns: id, time period / interval:
+people <- 1:100
+
+df <- data.frame(people)
+df
+
+df$start <- start_dates
+df
+
+# Add random number of days to the start dates:
+ndays <- sample.int(100, 100)
+ndays
+
+df$end <-df$start + ndays
+df
+
+glimpse(df)
+
+
+# Truncate end dates
+df %>% 
+  filter(end > as.Date("2014-12-31"))
+# NOTE: we are using dplyr's if_else instead of base's ifelse() because
+# it gives a less surprising return type, and preserves S3 vectors like dates"
+df$end <- if_else(df$end > as.Date("2014/12/31"), as.Date("2014/12/31"), df$end)
+df
+
+# Create interval column
+df$interval <- interval(df$start, df$end)
+df
+
+seq(df$start, df$end, "days")
+
+
+typeof(df$interval) # double
+
+
+
+intervals <- list(df$interval)
+intervals
+typeof(intervals)
+
+interval1 <- df$interval[1]
+interval1
+
+int_start(interval1)
+int_end(interval1)
+
+seq(int_start(interval1), int_end(interval1), "days")
+
+for(date in seq(int_start(interval1), int_end(interval1), "days")) {
+  cat(date,'\n')
+}
+
+
+
+for(i in 1:100){
+  cat(i,'\n')
+}
+
+
+dates <- list()
+
+for(i in 1:100){
+  k <- 0
+  interval <- df$interval[i]
+  start <- int_start(interval)
+  end <- int_end(interval)
+  sequence <- seq(start, end, "days")
+  #cat(seq(start, end, "days"))
+  for(j in seq_along(sequence)){
+    dates[k] <- sequence[j]
+    k <- k + 1
+  }
+}
+
+dates
+
+
+
+
+
+
+
+
+for(i in intervals) {
+  #cat(int_start(i), int_end(i))
+  cat(seq(int_start(i), int_end(i), "days"))
+}
+
+
+seq(start_date, end_date, "days")
+
+
+# Make a data frame with 3 columns: id, month, day:
+df2
+
+
+
+
+# Make a data frame with 3 columns: month, day, count:
+
+
+
+
+
+# Use set operations to find 
+unique(c(c1,c2))
+
+
+
+
+# Dplyr count dates
+df %>%
+  group_by(Date = as.Date(Date)) %>%
+  summarise(comments = n())
+
+
+
+
+
+
+
+
+# https://community.rstudio.com/t/counting-overlapping-records-per-day-using-dplyr/4289/2
+memberships <- tibble(
+  memberID     = c("A", "A", "A", "B"),
+  membershipID = 1:4 %>% as.factor,
+  start_date   = ymd(c(20100101, 20101220, 20120415, 20110605)),
+  end_date     = ymd(c(20101231, 20111231, 20130430, 20120531)),
+  mo_dur       = interval(start_date, end_date) %>% 
+    as.duration() / dyears() * 12)
+
+ggplot(memberships) + 
+  geom_segment(aes(x = start_date, xend = end_date,
+                   y = membershipID, yend = membershipID)) +
+  geom_text(vjust = -0.5, hjust=0, size = 3,
+            aes(x = start_date, y = membershipID, 
+                label = paste(round(mo_dur, 2), "months")))
+
+memberships <- tibble::rowid_to_column(memberships)
+
+overlaps <- purrr::map(memberships$rowid, function(id) {
+  if (id == nrow(memberships)) {
+    NA
+  } else {
+    row <- memberships[memberships[["rowid"]] == id, ]
+    intv <- lubridate::interval(row$start_date, row$end_date)
+    # these are the id's of the rows following id
+    other_ids <- (id):(nrow(memberships))
+    ol <- purrr::map_int(other_ids, function(other_id) {
+      other_row <- memberships[memberships[["rowid"]] == other_id, ]
+      # either on end is inside of interval or start and end span it
+      if (other_row$start_date %within% intv |
+          other_row$end_date %within% intv |
+          (other_row$start_date <= row$start_date &
+           other_row$end_date >= row$end_date)) {
+        as.integer(other_row$rowid)
+      } else {
+        NA_integer_
+      }
+    })
+    # drop the NA's
+    ol <- ol[!is.na(ol)]
+    # if nothing overlapped return NA
+    if (length(ol > 0)) {
+      ol
+    } else {
+      NA
+    }
+  }
+})
+
+# make it a tibbleso youcan bind it
+overlaps <- tibble::tibble(following_overlaps = overlaps)
+# add as column
+memberships <- dplyr::bind_cols(memberships, overlaps)
+
+memberships
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Create dataset with three columns: year, month, and count of something:
 df <- as.data.frame(airquality)
 df
-
 res <- ggplot(df, aes(Day, Month)) + geom_tile(aes(fill = Ozone),colour = "white") +
   scale_fill_gradient(low = "#d8e1cf", high = "#438484") +  
   guides(fill=guide_legend(title="Total Ozone")) +
@@ -737,3 +1056,20 @@ p_load(forecast)
 theme_set(theme_classic())
 # Plot
 ggseasonplot(AirPassengers) + labs(title="Seasonal plot: International Airline Passengers")
+
+# Policy Coverage ---------------------------------------------------------
+memberships <- tibble(
+  memberID     = c("A", "A", "A", "B"),
+  membershipID = 1:4 %>% as.factor,
+  start_date   = ymd(c(20100101, 20101220, 20120415, 20110605)),
+  end_date     = ymd(c(20101231, 20111231, 20130430, 20120531)),
+  mo_dur       = interval(start_date, end_date) %>% 
+    as.duration() / dyears() * 12)
+
+ggplot(memberships) + 
+  geom_segment(aes(x = start_date, xend = end_date,
+                   y = membershipID, yend = membershipID)) +
+  geom_text(vjust = -0.5, hjust=0, size = 3,
+            aes(x = start_date, y = membershipID, 
+                label = paste(round(mo_dur, 2), "months")))
+
