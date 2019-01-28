@@ -6,7 +6,11 @@
 library(pacman)
 p_load(tidyverse, magrittr, rbokeh, plotly, ggthemes, ggbeeswarm, cowplot,
        ggalt, scales, ggcorrplot, ggExtra, RColorBrewer, randomcoloR, MASS,
-       d3heatmap, ggridges, r2d3, gridExtra, viridis, ggrepel, lubridate)
+       d3heatmap, ggridges, r2d3, gridExtra, viridis, ggrepel, lubridate,
+       gapminder, superheat, ggthemr)
+
+devtools::install_github('cttobin/ggthemr')
+
 
 R.Version()
 
@@ -857,10 +861,6 @@ memberships
 
 
 
-
-
-
-
 # Create dataset with three columns: year, month, and count of something:
 df <- as.data.frame(airquality)
 df
@@ -880,7 +880,64 @@ ggplotly(res)
 
 
 
+
+
+
+
+
+
+
+
+# https://rkabacoff.github.io/datavis/Other.html#biplots
+# load data
+data(gapminder, package="gapminder")
+
+# subset Asian countries
+asia <- gapminder %>%
+  filter(continent == "Asia") %>%
+  dplyr::select(year, country, lifeExp)
+
+# convert to long to wide format
+plotdata <- spread(asia, year, lifeExp)
+
+# save country as row names
+plotdata <- as.data.frame(plotdata)
+row.names(plotdata) <- plotdata$country
+plotdata$country <- NULL
+
+# row order
+sort.order <- order(plotdata$"2007")
+
+# color scheme
+colors <- rev(brewer.pal(5, "Blues"))
+
+# create the heat map
+superheat(plotdata,
+          scale = FALSE,
+          left.label.text.size=3,
+          bottom.label.text.size=3,
+          bottom.label.size = .05,
+          heat.pal = colors,
+          order.rows = sort.order,
+          title = "Life Expectancy in Asia")
+
+
+
+
+
+
+
+
+
+
+
 # rbokeh
+
+
+
+
+
+
 
 
 
@@ -901,8 +958,24 @@ p
 
 
 
+
+
 # d3
-d3heatmap(mtcars, scale="column", colors="Blues")
+d3heatmap(mtcars, scale="column", colors="Blues", dendrogram = "none")
+
+
+
+# Create dataframe with Month as the rownames and each column is a member id:
+calendar <- data.frame("Month" = c("January","February","March","April",
+                                   "May","June","July","August","September",
+                                   "October","November","December"),
+)
+# Generate random binary for whether the member has coverage that month or not:
+1:52
+round(runif(52, min = 0, max = 1))
+
+
+
 
 
 
@@ -955,11 +1028,6 @@ print(treeMapPlot)
 
 
 
-# Love (lollipop) plots --------------------------------------------------------
-
-
-
-
 # Dot plots ---------------------------------------------------------------
 
 ggplot(diamonds, aes(x = price)) +
@@ -973,6 +1041,12 @@ ggplot(diamonds, aes(x = price)) +
   labs(title = "Proportion by price",
        y = "Proportion",
        x = "Price")
+
+# Love (lollipop) plots --------------------------------------------------------
+
+
+
+
 
 
 # Dumbbell plots ----------------------------------------------------------
@@ -1004,6 +1078,131 @@ gg <- ggplot(health, aes(x=pct_2013, xend=pct_2014, y=Area, group=Area)) +
         legend.position="top",
         panel.border=element_blank())
 plot(gg)
+
+
+
+
+
+
+
+#https://rkabacoff.github.io/datavis/Time.html
+# create dumbbell plot
+# First, create random data
+psData <- data.frame("variable_name" = c("gender","age","ccs_level"),
+                     "adjusted" = c(0.09,0.07,0.26),
+                     "unadjusted" = c(0.14,0.13,0.39))
+psData %>% 
+  mutate(difference = unadjusted - adjusted) -> psData
+psData
+
+
+data(gapminder, package = "gapminder")
+gapminder
+# subset data
+plotdata_long <- gapminder %>% 
+  filter(continent == "Americas" & year %in% c(1952, 2007)) %>% 
+  dplyr::select(country, year, lifeExp)
+
+# convert data to wide format
+plotdata_wide <- spread(plotdata_long, year, lifeExp)
+names(plotdata_wide) <- c("country", "y1952", "y2007")
+plotdata_wide
+
+# create dumbbell plot
+ggplot(plotdata_wide, aes(y = country,
+                          x = y1952,
+                          xend = y2007)) +  
+  geom_dumbbell()
+
+
+# Different look
+ggplot(plotdata_wide, 
+       aes(y = reorder(country, y1952),
+           x = y1952,
+           xend = y2007)) +  
+  geom_dumbbell(size = 1.2,
+                size_x = 3, 
+                size_xend = 3,
+                colour = "grey", 
+                colour_x = "blue", 
+                colour_xend = "red") +
+  geom_vline(aes(xintercept=40, color = "blue")) +
+  theme_minimal() + 
+  labs(title = "Change in Life Expectancy",
+       subtitle = "1952 to 2007",
+       x = "Life Expectancy (years)",
+       y = "")
+
+
+
+
+
+
+
+
+# plotly
+# https://plot.ly/r/dumbbell-plots/
+
+s <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/school_earnings.csv")
+# order factor levels by men's income (plot_ly() will pick up on this ordering)
+s$School <- factor(s$School, levels = s$School[order(s$Men)])
+s
+# School Women Men Gap
+p <- plot_ly(s, color = I("gray80")) %>%
+  add_segments(x = ~Women, xend = ~Men, y = ~School, yend = ~School, showlegend = FALSE) %>%
+  add_markers(x = ~Women, y = ~School, name = "Women", color = I("pink")) %>%
+  add_markers(x = ~Men, y = ~School, name = "Men", color = I("blue")) %>%
+  layout(
+    title = "Gender earnings disparity",
+    xaxis = list(title = "Annual Salary (in thousands)"),
+    margin = list(l = 65)
+  )
+p
+
+
+
+
+# Data should look like:
+# variable_name adjusted unadjusted difference
+psData <- data.frame("variable_name" = c("gender","age","ccs_level"),
+                     "adjusted" = c(0.09,0.07,0.26),
+                     "unadjusted" = c(0.14,0.13,0.39))
+psData
+psData %>% 
+  mutate(difference = unadjusted - adjusted) -> psData
+
+psData
+
+p <- plot_ly(psData, color = I("gray80")) %>%
+  add_segments(x = ~adjusted, xend = ~unadjusted, y = ~variable_name, yend = ~variable_name, showlegend = FALSE) %>%
+  add_markers(x = ~adjusted, y = ~variable_name, name = "adjusted", color = I("pink")) %>%
+  add_markers(x = ~unadjusted, y = ~variable_name, name = "unadjusted", color = I("blue")) %>%
+  layout(
+    title = "Covariate balance improvement",
+    xaxis = list(title = "Absolute Mean Differences"),
+    margin = list(l = 65)
+  )
+p
+
+
+# p <- plot_ly(psData, color = I("gray80")) %>%
+#   add_segments(x = ~adjusted, xend = ~unadjusted, y = ~variable_name, yend = ~variable_name, showlegend = FALSE) %>%
+#   
+#   # Trying to dd vertical line here for ALL y-axis
+#   add_segments(x = 0.1, xend = 0.1, y = 0, yend = 1, showlegend = FALSE) %>% 
+#   
+#   add_markers(x = ~adjusted, y = ~variable_name, name = "adjusted", color = I("pink")) %>%
+#   add_markers(x = ~unadjusted, y = ~variable_name, name = "unadjusted", color = I("blue")) %>%
+#   layout(
+#     title = "Covariate balance improvement",
+#     xaxis = list(title = "Absolute Mean Differences"),
+#     margin = list(l = 65)
+# )
+# 
+# p
+
+
+
 
 # Parallel coordinates ----------------------------------------------------
 
