@@ -9,9 +9,6 @@ p_load(tidyverse, magrittr, rbokeh, plotly, ggthemes, ggbeeswarm, cowplot,
        d3heatmap, ggridges, r2d3, gridExtra, viridis, ggrepel, lubridate,
        gapminder, superheat, ggthemr)
 
-devtools::install_github('cttobin/ggthemr')
-
-
 R.Version()
 
 # Remember: cufflinks is a great binding for pandas and plotly,
@@ -665,11 +662,11 @@ sample(seq(start_date, end_date, by="day"), 6)
 
 seq(start_date, start_date + 6, "days")
 
-# Make a vector of 6 start dates:
+# Make a vector of 100 start dates:
 start_dates <- sample(seq(start_date, end_date, by="day"), 100)
 start_dates
 
-# Make a vector of 6 end dates:
+# Make a vector of 100 end dates:
 end_dates <- sample(seq(start_date, end_date, by="day"), 100)
 end_dates
 
@@ -702,93 +699,52 @@ df
 
 # Create interval column
 df$interval <- interval(df$start, df$end)
-df
-
-seq(df$start, df$end, "days")
-
-
 typeof(df$interval) # double
+df %>% 
+  head()
 
+floor_date(as.POSIXct("2014-09-11"), "month")
+ceiling_date(as.POSIXct("2014-09-11"), "month")
 
+# Beginning of year
+boy <- as.POSIXct("2014-01-01")
 
-intervals <- list(df$interval)
-intervals
-typeof(intervals)
+df %>% 
+  head()
 
-interval1 <- df$interval[1]
-interval1
+df_copy <- df
+df_copy %>% 
+  head()
 
-int_start(interval1)
-int_end(interval1)
+colnames(df_copy)
 
-seq(int_start(interval1), int_end(interval1), "days")
+# Try to create empty columns in df pertaining to week number,
+# then for each member in the dataframe, loop through all
+# 52 weeks to test if the week is %within% the interval
+# for that member. If so, put a 1 or TRUE for that member's week value:
 
-for(date in seq(int_start(interval1), int_end(interval1), "days")) {
-  cat(date,'\n')
+# Try to mutate in a loop with strings for variable names:
+# https://stackoverflow.com/questions/26003574/dplyr-mutate-use-dynamic-variable-names
+
+for(i in 0:51){
+  varname <- paste0('week',i+1)
+  df_copy <- df_copy %>%
+    mutate(!!varname := as.integer(
+      as.interval(
+        boy + weeks(i),boy + weeks(i+1))
+      %within%interval))
 }
 
+df_copy
 
-
-for(i in 1:100){
-  cat(i,'\n')
-}
-
-
-dates <- list()
-
-for(i in 1:100){
-  k <- 0
-  interval <- df$interval[i]
-  start <- int_start(interval)
-  end <- int_end(interval)
-  sequence <- seq(start, end, "days")
-  #cat(seq(start, end, "days"))
-  for(j in seq_along(sequence)){
-    dates[k] <- sequence[j]
-    k <- k + 1
-  }
-}
-
-dates
+# Get the sum of the members with coverage in that week:
+df_copy %>% 
+  summarise_at(vars(week1:week52), funs(sum))
 
 
 
 
 
-
-
-
-for(i in intervals) {
-  #cat(int_start(i), int_end(i))
-  cat(seq(int_start(i), int_end(i), "days"))
-}
-
-
-seq(start_date, end_date, "days")
-
-
-# Make a data frame with 3 columns: id, month, day:
-df2
-
-
-
-
-# Make a data frame with 3 columns: month, day, count:
-
-
-
-
-
-# Use set operations to find 
-unique(c(c1,c2))
-
-
-
-
-# Dplyr count dates
-df %>%
-  group_by(Date = as.Date(Date)) %>%
-  summarise(comments = n())
 
 
 
@@ -846,7 +802,7 @@ overlaps <- purrr::map(memberships$rowid, function(id) {
   }
 })
 
-# make it a tibbleso youcan bind it
+# make it a tibble so youcan bind it
 overlaps <- tibble::tibble(following_overlaps = overlaps)
 # add as column
 memberships <- dplyr::bind_cols(memberships, overlaps)
@@ -965,14 +921,14 @@ d3heatmap(mtcars, scale="column", colors="Blues", dendrogram = "none")
 
 
 
-# Create dataframe with Month as the rownames and each column is a member id:
-calendar <- data.frame("Month" = c("January","February","March","April",
-                                   "May","June","July","August","September",
-                                   "October","November","December"),
-)
-# Generate random binary for whether the member has coverage that month or not:
-1:52
-round(runif(52, min = 0, max = 1))
+
+dropcols <- c("start","end","interval")
+mydf <- df_copy %>% 
+  dplyr::select(-one_of(dropcols))
+mydf
+
+d3heatmap(mydf, scale="column", colors="Blues", dendrogram = "none")
+# It works!! Victory!
 
 
 
