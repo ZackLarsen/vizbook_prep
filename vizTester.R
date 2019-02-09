@@ -1,7 +1,10 @@
 
-# This script is for testing out different visualizations on datasets
-# that come preloaded with r
-# The hope is to include all of these in the R gitbook called 'vizbook'
+##################################################
+## Project: Vizbook_prep
+## Script purpose: Use R datasets for dataviz
+## Date: February 9, 2019
+## Author: Zack Larsen
+##################################################
 
 library(pacman)
 p_load(tidyverse, magrittr, rbokeh, plotly, ggthemes, ggbeeswarm, cowplot,
@@ -33,8 +36,8 @@ View(midwest)
 # Resources (links) -------------------------------------------------------
 
 #http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html#Dot%20Plot
-
-
+# http://www.sthda.com/english/wiki/be-awesome-in-ggplot2-a-practical-guide-to-be-highly-effective-r-software-and-data-visualization
+# https://uc-r.github.io/lollipop
 
 # Histograms and density plots --------------------------------------------
 
@@ -255,6 +258,8 @@ p
 
 
 
+
+# Crossbar ----------------------------------------------------------------
 
 # violin plots ------------------------------------------------------------
 
@@ -998,7 +1003,108 @@ ggplot(diamonds, aes(x = price)) +
        y = "Proportion",
        x = "Price")
 
+
+
+# geom_point --------------------------------------------------------------
+
+ggplot(mtcars, aes(wt, mpg)) +
+  geom_point(shape = 21, colour = "black", fill = "white", size = 5, stroke = 5)
+
+
+
+
+
+
+
+
+
+# https://socviz.co/maps.html
+
+
+
+
+
+
+# pointrange --------------------------------------------------------------
+
+
+
+
+
+
+
 # Love (lollipop) plots --------------------------------------------------------
+
+# https://rpubs.com/ageek/ggplot-adv-part2
+mpg %>%
+  group_by(manufacturer) %>%
+  summarise(Mileage=mean(cty)) %>%
+  #convert to factor and re-order using forcats:fct_order method at one go
+  mutate(Make=fct_reorder(manufacturer, Mileage))%>%
+  ggplot(aes(x=Make, y=Mileage)) + 
+  geom_point(size=4, color="tomato3") + 
+  geom_segment(aes(x=Make, 
+                   xend=Make, 
+                   y=0, 
+                   yend=Mileage)) + 
+  #print value for each bar as well
+  geom_text(color="purple", size=4, vjust=-0.8, 
+            aes(label=sprintf("%0.1f", round(Mileage, digits = 2))))+
+  labs(title="Lollipop Chart",
+       subtitle="Make Vs Avg. Mileage") + 
+  # change default limit to 30 else geom_text for largest point 24.4              prints halfway only
+  ylim(0, 27)+
+  theme(axis.text.x = element_text(angle=65, vjust=0.7, color="tomato3"))
+
+
+
+
+
+
+# This example might be useful in examining matching imbalance,
+# by showing which variable decreased or increased in imbalance
+# instead of showing the absolute amount:
+
+# https://www.r-graph-gallery.com/302-lollipop-chart-with-conditional-color/
+x=seq(0, 2*pi, length.out=100)
+data=data.frame(x=x, y=sin(x) + rnorm(100, sd=0.2))
+# Add a column with your condition for the color
+data <- data %>% 
+  mutate(mycolor = ifelse(y>0, "type1", "type2")) %>% 
+  arrange(desc(y))
+data$x <- as.character(round(x, digits = 2))
+
+# plot
+l1 <- ggplot(data, aes(x=reorder(x,-y), y=y)) +
+  geom_segment(aes(x=x, xend=x, y=0, yend=y, color=mycolor), 
+               size=1.3, alpha=0.9) +
+  theme_light() +
+  theme(
+    legend.position = "none",
+    panel.border = element_blank(),
+  ) +
+  xlab("") +
+  ylab("Value of Y")
+
+l1
+
+# Swap axes
+l1 + coord_flip()
+
+# Add in annotation:
+l1 +
+  coord_flip() +
+  annotate("text", x = 3, y = -1, label = "Above Average", 
+           color = "#00BFC4", size = 3, hjust = -0.1, vjust = .75) +
+  annotate("text", x = 3, y = -1, label = "Below Average", 
+           color = "#F8766D", size = 3, hjust = -0.1, vjust = -.1) +
+  geom_segment(aes(x = 3, xend = 4 , y = -1, yend = -0.5),
+               arrow = arrow(length = unit(0.2,"cm")), color = "#00BFC4") +
+  geom_segment(aes(x = 3, xend = 2 , y = -1, yend = -0.5),
+               arrow = arrow(length = unit(0.2,"cm")), color = "#F8766D")
+
+# Have to change the x and xend for the geom_segment arrows to whatever
+# factor levels are at the center of the plot
 
 
 
@@ -1006,11 +1112,15 @@ ggplot(diamonds, aes(x = price)) +
 
 
 # Dumbbell plots ----------------------------------------------------------
+
+#https://rud.is/b/2016/04/17/ggplot2-exercising-with-ggalt-dumbbells/
+
+
+# https://rpubs.com/ageek/ggplot-adv-part2
 theme_set(theme_classic())
 
 health <- read.csv("https://raw.githubusercontent.com/selva86/datasets/master/health.csv")
 health$Area <- factor(health$Area, levels=as.character(health$Area))  # for right ordering of the dumbells
-
 health
 
 # health$Area <- factor(health$Area)
@@ -1034,6 +1144,37 @@ gg <- ggplot(health, aes(x=pct_2013, xend=pct_2014, y=Area, group=Area)) +
         legend.position="top",
         panel.border=element_blank())
 plot(gg)
+
+
+ggplot(health, aes(x=pct_2013, xend=pct_2014, y=Area)) + 
+  #create a thick line between x and xend instead of using defaut 
+  #provided by geom_dubbell
+  geom_segment(aes(x=pct_2013, 
+                   xend=pct_2014, 
+                   y=Area, 
+                   yend=Area), 
+               color="#b2b2b2", size=1.5)+
+  geom_dumbbell(color="light blue", 
+                size_x=3.5, 
+                size_xend = 3.5,
+                #Note: there is no US:'color' for UK:'colour' 
+                # in geom_dumbbel unlike standard geoms in ggplot()
+                colour_x="#edae52", 
+                colour_xend = "#9fb059")+
+  labs(x=NULL, y=NULL, 
+       title="Dumbbell Chart", 
+       subtitle="Pct Change: 2013 vs 2014")+
+  geom_text(color="black", size=2, hjust=-0.5,
+            aes(x=pct_2013, label=pct_2013))+
+  geom_text(aes(x=pct_2014, label=pct_2014), 
+            color="black", size=2, hjust=1.5) +
+  geom_vline(aes(xintercept=0.1, color = "black"))
+
+
+
+
+
+
 
 
 
@@ -1091,6 +1232,75 @@ ggplot(plotdata_wide,
 
 
 
+# Similar to above but with example relevant to matching:
+# Dataset should look like:
+# varname | pre | post
+match_data <- data.frame("varname" = c("gender",
+                                       "age",
+                                       "ccs_level",
+                                       "total medical net paid",
+                                       "professional net paid",
+                                       "admission counts",
+                                       "professional visits",
+                                       "BH total net paid",
+                                       "BH professional",
+                                       "BH outpatient",
+                                       "ALOS"),
+                         "adjusted" = c(0.09,0.17,0.29,0.07,0.19,0.26,0.3,0.19,0.24,0.08,0.14),
+                         "unadjusted" = c(0.14,0.15,0.37,0.13,0.24,0.39,0.12,0.2,0.18,0.31,0.4))
+
+match_data <- match_data %>% 
+  mutate(diff = unadjusted - adjusted)
+match_data
+
+dumbbell <- ggplot(match_data, 
+       aes(y = reorder(varname, adjusted),
+           x = unadjusted,
+           xend = adjusted)) +  
+  geom_dumbbell(size = 1.2,
+                size_x = 3, 
+                size_xend = 3,
+                colour = "grey", 
+                colour_x = "blue", 
+                colour_xend = "red") +
+  geom_vline(aes(xintercept=0.1),linetype='dashed') +
+  theme_minimal() + 
+  labs(title = "Reduction in Imbalance",
+       subtitle = "Pre vs. Post",
+       x = "Mean absolute difference",
+       y = "",
+       fontface = "bold")
+
+dumbbell + theme(axis.text.y = element_text(colour = "darkblue")) +labs(y = NULL)
+
+# https://data-se.netlify.com/2018/05/23/playing-around-with-dumbbell-plots/
+dumbbell2 <- dumbbell + 
+  geom_text(aes(y = varname, label = diff),
+          x = max(match_data$unadjusted)*1.2, hjust = 1, vjust = -0.5,
+          color = "blue", fontface = "bold") +
+  annotate(x = max(match_data$unadjusted)*1.2, y = "professional visits", label = "Diff",
+           geom = "text", vjust = -3,
+           fontface = "bold",
+           hjust = 1) +
+  theme_economist() +
+  scale_color_manual(name = "", values = c("red", "blue") )
+
+dumbbell2
+
+
+dumbbell +
+  annotate(geom = "rect",
+         xmin = .25,
+         xmax = 1,
+         ymin = as.numeric(d$country[d$country =="Region I"]) - 0.3,
+         ymax = as.numeric(d$country[d$country =="Region I"]) + 0.3,
+         alpha = .3,
+         fill = "firebrick")
+
+
+
+
+
 
 
 
@@ -1117,16 +1327,19 @@ p
 
 
 
-
 # Data should look like:
 # variable_name adjusted unadjusted difference
-psData <- data.frame("variable_name" = c("gender","age","ccs_level"),
-                     "adjusted" = c(0.09,0.07,0.26),
-                     "unadjusted" = c(0.14,0.13,0.39))
-psData
+psData <- data.frame("variable_name" = c("gender",
+                                         "age",
+                                         "ccs_level",
+                                         "total medical net paid",
+                                         "BH net paid",
+                                         "BH professional",
+                                         "ALOS"),
+                     "adjusted" = c(0.09,0.07,0.26,0.3,0.19,0.08,0.14),
+                     "unadjusted" = c(0.14,0.13,0.39,0.12,0.2,0.31,0.4))
 psData %>% 
   mutate(difference = unadjusted - adjusted) -> psData
-
 psData
 
 p <- plot_ly(psData, color = I("gray80")) %>%
