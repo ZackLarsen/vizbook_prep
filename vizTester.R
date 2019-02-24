@@ -10,7 +10,7 @@ library(pacman)
 p_load(tidyverse, magrittr, rbokeh, plotly, ggthemes, ggbeeswarm, cowplot,
        ggalt, scales, ggcorrplot, ggExtra, RColorBrewer, randomcoloR, MASS,
        d3heatmap, ggridges, r2d3, gridExtra, viridis, ggrepel, lubridate,
-       gapminder, superheat, ggthemr)
+       gapminder, superheat, ggthemr, networkD3)
 
 R.Version()
 
@@ -293,7 +293,23 @@ ggplot(dt.long,aes(factor(variable), value))+
 
 
 
+
+
+
+
+
+
+
+
+
 # rbokeh
+
+
+
+
+
+
+
 
 
 
@@ -954,7 +970,6 @@ figure() %>% ly_hexbin(rnorm(10000), rnorm(10000))
 
 # Treemaps ----------------------------------------------------------------
 
-
 p_load(treemapify)
 proglangs <- read.csv("https://raw.githubusercontent.com/selva86/datasets/master/proglanguages.csv")
 
@@ -984,10 +999,11 @@ print(treeMapPlot)
 
 # Network graphs ----------------------------------------------------------
 
-
-
-
-
+#http://www.rebeccabarter.com/blog/2017-04-20-interactive/
+forceNetwork(Links = MisLinks, Nodes = MisNodes, Source = "source",
+             Target = "target", Value = "value", NodeID = "name",
+             Group = "group", opacity = 0.9, Nodesize = 3, 
+             linkDistance = 100, fontSize = 20)
 
 # Dot plots ---------------------------------------------------------------
 
@@ -1055,9 +1071,6 @@ mpg %>%
   # change default limit to 30 else geom_text for largest point 24.4              prints halfway only
   ylim(0, 27)+
   theme(axis.text.x = element_text(angle=65, vjust=0.7, color="tomato3"))
-
-
-
 
 
 
@@ -1414,7 +1427,7 @@ g <- ggplot(mpg, aes(cty, hwy)) +
   geom_count() + 
   geom_smooth(method="lm", se=F)
 
-ggMarginal(g, type = "histogram", fill="transparent")
+ggMarginal(g, type = "histogram", fill="pink")
 ggMarginal(g, type = "boxplot", fill="transparent")
 ggMarginal(g, type = "density", fill="transparent")
 
