@@ -1,0 +1,454 @@
+---
+title: "viz_notebook"
+author: "Zack Larsen"
+date: "2/24/2019"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: paper
+    df_print: paged
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pacman)
+p_load(tidyverse, gridExtra, magrittr, rbokeh, plotly, ggthemes, ggbeeswarm, cowplot, ggalt, scales, ggcorrplot, ggExtra, RColorBrewer, randomcoloR, MASS,
+d3heatmap, ggridges, r2d3, viridis, ggrepel, lubridate,
+gapminder, superheat, ggthemr, networkD3)
+```
+
+## Data tables {.tabset}
+
+### match.data
+
+```{r, cache=TRUE, echo=TRUE}
+match.data <- data.frame(varname = c("readmissions",
+                                     "inpatient visits",
+                                     "outpatient visits",
+                                     "professional visits",
+                                     "age"),
+                         before = c(0.24,
+                                    0.31,
+                                    0.15,
+                                    0.18,
+                                    0.12),
+                         after = c(0.17,
+                                   0.20,
+                                   0.07,
+                                   0.11,
+                                   0.15))
+
+match.data
+```
+
+### Difference in differences
+
+```{r, cache=TRUE, echo=FALSE}
+diff_in_diff <- data.frame(varname = c("readmissions",
+                                       "inpatient visits",
+                                       "outpatient visits",
+                                       "professional visits",
+                                       "total net paid",
+                                       "total spend",
+                                       "BH total net paid",
+                                       "BH total spend"),
+                           difference = c(3.4,
+                                          7.1,
+                                          10.2,
+                                          4.3,
+                                          245,
+                                          320,
+                                          -112.134,
+                                          -150))
+
+diff_in_diff <- diff_in_diff %>% 
+  mutate(sign = sign(difference),
+         transform = sign*log(abs(difference))) %>% 
+  arrange(desc(difference))
+
+diff_in_diff
+```
+
+### mtcars
+
+```{r}
+mtcars
+```
+
+### diamonds
+
+```{r}
+diamonds
+```
+
+## Histograms {.tabset}
+
+### ggplot2
+
+```{r, cache=TRUE}
+h1 <- ggplot(data = diamonds,
+            mapping = aes(x = price))
+
+h1 + geom_histogram(fill = "pink", color = "black", bins = 30) +
+  labs(title="Pink histogram", y="Count of points in bin", x="Diamond price",
+       caption="Data source: diamonds") + 
+  theme(plot.title=element_text(size=30, 
+                              face="bold", 
+                              family="American Typewriter",
+                              color="grey",
+                              hjust=0.5,
+                              lineheight=1.5),  # title
+      plot.subtitle=element_text(size=15, 
+                                 family="American Typewriter",
+                                 face="bold",
+                                 hjust=0.5),  # subtitle
+      plot.caption=element_text(size=10),  # caption
+      axis.title.x=element_text(vjust=-2,  
+                                size=15),  # X axis title
+      axis.title.y=element_text(size=15),  # Y axis title
+      axis.text.x=element_text(size=10, 
+                               angle=30,
+                               vjust=0.5),  # X axis text
+      axis.text.y=element_text(size=10))  # Y axis text
+
+
+
+h3 <- ggplot(diamonds, aes(price, fill = cut(price, 100))) +
+  geom_histogram(show.legend = FALSE, bins = 50) +
+  theme_minimal() +
+  labs(x = "Price", y = "n")
+
+h3 + scale_fill_discrete(h = c(180, 360), c = 150, l = 80) +
+  labs(title="Rad histogram") +
+  theme(plot.background=element_rect(fill="salmon"), 
+        plot.margin = unit(c(1, 2, 1, 1), "cm"),
+        plot.title=element_text(size=30, 
+                        face="bold", 
+                        family="American Typewriter",
+                        color="cyan",
+                        hjust=0.5,
+                        lineheight=1.5))
+
+
+
+# Faceting with CUSTOM binwidth function
+# Using density instead of count for a more even comparison across facets:
+ggplot(data = diamonds, aes(x = price, stat(density))) +
+  geom_histogram(fill = "pink", color = "black",
+                 binwidth = function(x) 2 * IQR(x) / (length(x)^(1/3))) +
+  facet_wrap(~cut)
+```
+
+### rbokeh
+
+```{r, cache=TRUE, warning=FALSE}
+# 600 X 400 is a good figure to start with for the Viewer, but you
+# might want more than that if you are going to zoom because it will
+# not automatically adjust like ggplot
+figure(width = 600, height = 400, legend_location = "top_right") %>%
+  ly_hist(price, data = diamonds, breaks = 40, freq = FALSE) %>%
+  ly_density(price, data = diamonds)
+
+figure(width = 600, height = 400, legend_location = "top_right") %>%
+  ly_hist(price, data = diamonds, breaks = 40, freq = FALSE, hover = price) %>%
+  ly_density(price, data = diamonds)
+```
+
+### Plotly
+
+```{r, cache=TRUE, warning=FALSE}
+plot_ly(x = ~diamonds$price,
+        type = "histogram",
+        histnorm = "probability",
+        alpha = 0.5)
+```
+
+## Density plots {.tabset}
+
+### ggplot2
+
+```{r, cache=TRUE, warning=FALSE}
+# Proportionally scaled density map
+d2 <- ggplot(data = diamonds,
+             mapping = aes(x = price, fill = cut, color = cut))
+
+d2 + geom_density(alpha = 0.3, mapping = aes(y = ..scaled..))
+```
+
+### rbokeh
+
+```{r, cache=TRUE, warning=FALSE}
+figure(width = 600, height = 400, legend_location = "top_right") %>%
+  ly_hist(price, data = diamonds, breaks = 40, freq = FALSE, hover = (diamonds$price)) %>%
+  ly_density(price, data = diamonds, color = "red")
+```
+
+## boxplots {.tabset}
+
+### ggplot2
+
+```{r, cache=TRUE, warning=FALSE}
+x1 <- ggplot(data = diamonds,
+             mapping = aes(x = cut, y = price)) +
+  theme_economist() + 
+  scale_fill_economist()
+
+x1 + geom_boxplot(fill = "lightpink") + 
+  coord_flip()
+```
+
+### rbokeh
+
+```{r, cache=TRUE, warning=FALSE}
+figure(ylab = "Height (inches)", width = 600) %>%
+  ly_boxplot(voice.part, height, data = lattice::singer)
+
+figure(data = lattice::singer) %>%
+  ly_points(catjitter(voice.part), jitter(height), color = "black") %>%
+  ly_boxplot(voice.part, height, with_outliers = FALSE)
+```
+
+### plotly
+
+```{r, cache=TRUE, warning=FALSE}
+p <- plot_ly(midwest, x = ~percollege, color = ~state, type = "box")
+p
+
+p <- plot_ly(y = ~rnorm(50), type = "box") %>%
+  add_trace(y = ~rnorm(50, 1))
+p
+
+p <- plot_ly(x = ~rnorm(50), type = "box") %>%
+  add_trace(x = ~rnorm(50, 1))
+p
+
+
+
+p <- plot_ly(ggplot2::diamonds, y = ~price, color = ~cut, type = "box")
+p
+```
+
+## violin plots {.tabset}
+
+### ggplot2
+
+```{r, cache=TRUE, warning=FALSE}
+p <- ggplot(mtcars, aes(factor(cyl), mpg))
+p + geom_violin() + geom_jitter(height = 0, width = 0.1)
+p + geom_violin(aes(fill = cyl))
+
+
+
+data(Boston)
+dt.long <- gather(Boston, "variable",
+                  "value", crim:medv)
+
+col <- colorRampPalette(c("red", "blue"))(14)
+# col.bp <- brewer.pal(9, "Set1") # brewer.pal only has a max of 9 colors
+col.rc <- as.vector(distinctColorPalette(14))
+
+ggplot(dt.long,aes(factor(variable), value))+
+  geom_violin(aes(fill=factor(variable)))+
+  geom_boxplot(alpha=0.3, color="black", width=.1)+
+  labs(x = "", y = "")+
+  theme_bw()+
+  theme(legend.title = element_blank())+
+  facet_wrap(~variable, scales="free")
+```
+
+### plotly
+
+```{r, cache=TRUE, warning=FALSE}
+df <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/violin_data.csv")
+
+p <- df %>%
+  plot_ly(
+    x = ~day,
+    y = ~total_bill,
+    split = ~day,
+    type = 'violin',
+    box = list(
+      visible = T
+    ),
+    meanline = list(
+      visible = T
+    )
+  ) %>% 
+  layout(
+    xaxis = list(
+      title = "Day"
+    ),
+    yaxis = list(
+      title = "Total Bill",
+      zeroline = F
+    )
+  )
+
+p
+```
+
+## scatterplots {.tabset}
+
+### ggplot2
+
+```{r, cache=TRUE, warning=FALSE}
+
+p <- ggplot(data = diamonds,
+            mapping = aes(x = depth, y = price))
+
+p + geom_point() +
+  annotate(geom = "rect", xmin = 70, xmax = 80,
+           ymin = 15000, ymax = 20000, fill = "red", alpha = 0.2) + 
+  annotate(geom = "text", x = 70, y = 14000,
+           label = "A surprisingly high \n recovery rate.", hjust = 0)
+```
+
+### rbokeh
+
+```{r, cache=TRUE, warning=FALSE}
+figure() %>%
+  ly_points(Sepal.Length, Sepal.Width, data = iris, color = Species, hover = list(Sepal.Length, Sepal.Width))
+```
+
+## correlograms {.tabset}
+
+### ggplot2
+
+```{r, cache=TRUE, warning=FALSE}
+corr <- round(cor(mtcars), 1)
+# Plot
+ggcorrplot(corr, hc.order = TRUE, 
+           type = "lower", 
+           lab = TRUE, 
+           lab_size = 3, 
+           method="circle", 
+           colors = c("tomato2", "white", "springgreen3"), 
+           title="Correlogram of mtcars", 
+           ggtheme=theme_bw)
+```
+
+## bar charts {.tabset}
+
+### ggplot2
+
+```{r, cache=TRUE, warning=FALSE}
+theme_set(theme_bw())  
+# Data Prep
+data("mtcars")  # load data
+mtcars$`car name` <- rownames(mtcars)  # create new column for car names
+mtcars$mpg_z <- round((mtcars$mpg - mean(mtcars$mpg))/sd(mtcars$mpg), 2)  # compute normalized mpg
+mtcars$mpg_type <- ifelse(mtcars$mpg_z < 0, "below", "above")  # above / below avg flag
+mtcars <- mtcars[order(mtcars$mpg_z), ]  # sort
+mtcars$`car name` <- factor(mtcars$`car name`, levels = mtcars$`car name`)  # convert to factor to retain sorted order in plot.
+# Diverging Barcharts
+ggplot(mtcars, aes(x=`car name`, y=mpg_z, label=mpg_z)) + 
+  geom_bar(stat='identity', aes(fill=mpg_type), width=.5)  +
+  scale_fill_manual(name="Mileage", 
+                    labels = c("Above Average", "Below Average"), 
+                    values = c("above"="#00ba38", "below"="#f8766d")) + 
+  labs(subtitle="Normalised mileage from 'mtcars'", 
+       title= "Diverging Bars") + 
+  coord_flip()
+```
+
+```{r, cache=TRUE, warning=FALSE}
+avg_mpg <- mtcars %>%
+        group_by(cyl, am) %>%
+        summarise(mpg = round(mean(mpg, na.rm = TRUE),2))
+
+p1 <- ggplot(avg_mpg, aes(factor(cyl), mpg, fill = factor(am))) +
+        geom_bar(stat = "identity", position = "dodge", color = "grey40") +
+        labs(fill = "AM group", caption = "Wide layout bar chart") +
+        xlab("AM group") +
+        ylab("# Cylinders") +
+        theme_minimal() +
+        ggtitle("MPG ratings with annotations") +
+        scale_fill_brewer(palette = "Pastel1") +
+        geom_text(aes(label = mpg), position = position_dodge(0.9),
+                 vjust = 1.5, color = "white", family = "Georgia", size = 8)
+
+p1
+```
+
+## principle components analysis {.tabset}
+
+### base plot
+
+```{r, cache=TRUE, warning=FALSE}
+data(mtcars)
+pcaCars <- princomp(mtcars, cor = TRUE)
+
+# scree plot
+plot(pcaCars, type = "l")
+
+# cluster cars
+carsHC <- hclust(dist(pcaCars$scores), method = "ward.D2")
+
+# dendrogram
+plot(carsHC)
+
+# cut the dendrogram into 3 clusters
+carsClusters <- cutree(carsHC, k = 3)
+
+# add cluster to data frame of scores
+carsDf <- data.frame(pcaCars$scores, "cluster" = factor(carsClusters))
+carsDf <- transform(carsDf, cluster_name = paste("Cluster",carsClusters))
+```
+
+### ggplot2
+
+```{r, cache=TRUE, warning=FALSE}
+# ggplot2
+p1 <- ggplot(carsDf,aes(x=Comp.1, y=Comp.2)) +
+  theme_classic() +
+  geom_hline(yintercept = 0, color = "gray70") +
+  geom_vline(xintercept = 0, color = "gray70") +
+  geom_point(aes(color = cluster), alpha = 0.55, size = 3) +
+  xlab("PC1") +
+  ylab("PC2") + 
+  xlim(-5, 6) + 
+  ggtitle("PCA Clusters from Hierarchical Clustering of Cars Data") 
+
+# ggplot2 with ggrepel
+p1 + geom_text_repel(aes(y = Comp.2 + 0.25, label = rownames(carsDf))) 
+```
+
+## ridgeline plots {.tabset}
+
+### ggplot2
+
+```{r, cache=TRUE, warning=FALSE, message=FALSE}
+ggplot(lincoln_weather, aes(x = `Mean Temperature [F]`, y = `Month`, fill = ..x..)) +
+  geom_density_ridges_gradient(scale = 3, rel_min_height = 0.01) +
+  scale_fill_viridis(name = "Temp. [F]", option = "C") +
+  labs(title = 'Temperatures in Lincoln NE in 2016')
+```
+
+## hexbin density plots {.tabset}
+
+### rbokeh
+
+```{r, cache=TRUE, warning=FALSE, message=FALSE}
+figure() %>% ly_hexbin(rnorm(10000), rnorm(10000))
+```
+
+## marginal histogram plots {.tabset}
+
+### ggplot2
+
+```{r, cache=TRUE, warning=FALSE, message=FALSE}
+theme_set(theme_bw())  # pre-set the bw theme.
+mpg_select <- mpg[mpg$hwy >= 35 & mpg$cty > 27, ]
+g <- ggplot(mpg, aes(cty, hwy)) + 
+  geom_count() + 
+  geom_smooth(method="lm", se=F)
+
+ggMarginal(g, type = "histogram", fill="pink")
+```
+
+```{r, cache=TRUE, warning=FALSE, message=FALSE}
+ggMarginal(g, type = "boxplot", fill="pink")
+```
