@@ -18,20 +18,24 @@ p_load(tidyverse, magrittr, rbokeh, plotly, ggthemes, ggbeeswarm, cowplot,
 # example data ------------------------------------------------------------
 
 # First, create random data
-psData <- data.frame("variable_name" = c("gender","age","ccs_level","ipa_cnt_bsln"),
-                     "adjusted" = c(0.09,0.07,0.16,0.08),
-                     "unadjusted" = c(0.14,0.13,0.23,0.24))
+match_data <- data.frame("variable_name" = c("gender",
+                                       "age",
+                                       "ccs_level",
+                                       "total medical net paid",
+                                       "professional net paid",
+                                       "admission counts",
+                                       "professional visits",
+                                       "BH total net paid",
+                                       "BH professional",
+                                       "BH outpatient",
+                                       "ALOS"),
+                         "adjusted" = c(0.09,0.17,0.29,0.07,0.19,0.26,0.3,0.19,0.24,0.08,0.14),
+                         "unadjusted" = c(0.14,0.15,0.37,0.13,0.24,0.39,0.12,0.2,0.18,0.31,0.4))
 
-psData %>% 
-  mutate(difference = unadjusted - adjusted) -> psData
+match_data <- match_data %>% 
+  mutate(difference = unadjusted - adjusted) 
 
-psData
-
-
-
-
-
-
+match_data
 
 
 
@@ -41,7 +45,7 @@ psData
 
 #https://rkabacoff.github.io/datavis/Time.html
 
-p1 <- ggplot(psData, 
+p1 <- ggplot(match_data, 
        aes(y = reorder(variable_name, unadjusted),
            x = unadjusted,
            xend = adjusted)) +  
@@ -70,6 +74,60 @@ p1 + theme(plot.subtitle = element_text(vjust = 1),
     panel.grid.minor = element_line(colour = "honeydew4", 
         size = 0.25, linetype = "dashed"), plot.title = element_text(family = "serif", 
         size = 15)) +labs(x = NULL, y = NULL, caption = "Image design by Zack Larsen")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ggplot(match_data, 
+       aes(y = reorder(variable_name, unadjusted),
+           x = unadjusted,
+           xend = adjusted)) +  
+  geom_dumbbell(size = 1.2,
+                size_x = 3, 
+                size_xend = 3,
+                colour = "grey", 
+                colour_x = "blue", 
+                colour_xend = "red") +
+  geom_vline(aes(xintercept=0.1, color = "red")) +
+  theme_minimal() + 
+  labs(title = "Change in Life Expectancy",
+       subtitle = "1952 to 2007",
+       x = "Life Expectancy (years)",
+       y = "")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

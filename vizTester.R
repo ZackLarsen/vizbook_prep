@@ -973,6 +973,9 @@ figure() %>% ly_hexbin(rnorm(10000), rnorm(10000))
 p_load(treemapify)
 proglangs <- read.csv("https://raw.githubusercontent.com/selva86/datasets/master/proglanguages.csv")
 
+proglangs %>% 
+  head()
+
 # plot
 treeMapCoordinates <- treemapify(proglangs,
                                  area = "value",
@@ -987,6 +990,7 @@ treeMapPlot <- ggplot(treeMapCoordinates) +
 
 print(treeMapPlot)
 
+treeMapPlot
 
 
 # Geographic plots --------------------------------------------------------

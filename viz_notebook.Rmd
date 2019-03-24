@@ -295,7 +295,6 @@ p
 ### ggplot2
 
 ```{r, cache=TRUE, warning=FALSE}
-
 p <- ggplot(data = diamonds,
             mapping = aes(x = depth, y = price))
 
@@ -303,7 +302,7 @@ p + geom_point() +
   annotate(geom = "rect", xmin = 70, xmax = 80,
            ymin = 15000, ymax = 20000, fill = "red", alpha = 0.2) + 
   annotate(geom = "text", x = 70, y = 14000,
-           label = "A surprisingly high \n recovery rate.", hjust = 0)
+           label = "Potential outliers.", hjust = 0)
 ```
 
 ### rbokeh
