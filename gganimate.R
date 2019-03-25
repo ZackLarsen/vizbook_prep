@@ -48,9 +48,6 @@ earnings <- lalonde %>%
 earnings
 
 
-
-
-
 ggplot(earnings, aes(factor(treat), Earnings)) + 
   geom_boxplot(fill = "pink") +
   coord_flip() +
@@ -65,4 +62,8 @@ ggplot(earnings, aes(factor(treat), Earnings)) +
   exit_shrink() +
   ease_aes('sine-in-out') +
   ggtitle('Now showing earnings for {closest_state}')
+
+
+
+
 
