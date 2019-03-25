@@ -29,7 +29,7 @@ match_data <- data.frame("variable_name" = c("gender",
                                        "BH professional",
                                        "BH outpatient",
                                        "ALOS"),
-                         "adjusted" = c(0.09,0.17,0.29,0.07,0.19,0.26,0.3,0.19,0.24,0.08,0.14),
+                         "adjusted" = c(0.09,0.17,0.29,0.07,0.09,0.06,0.13,0.11,0.08,0.08,0.14),
                          "unadjusted" = c(0.14,0.15,0.37,0.13,0.24,0.39,0.12,0.2,0.18,0.31,0.4))
 
 match_data <- match_data %>% 
@@ -64,16 +64,29 @@ p1 <- ggplot(match_data,
 p1
 
 
-p1 + theme_economist_white()
+p1 + theme_economist()
 
 
 
 ## After customizing with ggthemeassist
-p1 + theme(plot.subtitle = element_text(vjust = 1), 
-    plot.caption = element_text(vjust = 1), 
-    panel.grid.minor = element_line(colour = "honeydew4", 
-        size = 0.25, linetype = "dashed"), plot.title = element_text(family = "serif", 
-        size = 15)) +labs(x = NULL, y = NULL, caption = "Image design by Zack Larsen")
+p1 + 
+  theme(
+  axis.line = element_line(size = 2, colour = "grey80"),
+  panel.border = element_rect(linetype = "dashed", fill = NA),
+  plot.subtitle = element_text(vjust = 1), 
+  plot.caption = element_text(vjust = 1), 
+  panel.background = element_rect(fill = "white", colour = "grey50"),
+  panel.grid.minor = element_line(
+    colour = "honeydew4", 
+    size = 0.25, 
+    linetype = "dashed"
+    ), 
+  plot.title = element_text(
+    family = "serif", 
+    size = 15
+    )
+  ) + 
+  labs(x = NULL, y = NULL, caption = "Image design by Zack Larsen")
 
 
 
@@ -81,14 +94,7 @@ p1 + theme(plot.subtitle = element_text(vjust = 1),
 
 
 
-
-
-
-
-
-
-
-
+match_data
 
 ggplot(match_data, 
        aes(y = reorder(variable_name, unadjusted),
@@ -98,14 +104,15 @@ ggplot(match_data,
                 size_x = 3, 
                 size_xend = 3,
                 colour = "grey", 
-                colour_x = "blue", 
-                colour_xend = "red") +
-  geom_vline(aes(xintercept=0.1, color = "red")) +
+                colour_x = "red", 
+                colour_xend = "blue") +
+  geom_vline(aes(xintercept=0.1, color = "red", linetype="dashed")) +
   theme_minimal() + 
-  labs(title = "Change in Life Expectancy",
-       subtitle = "1952 to 2007",
+  labs(title = "Change in Balance",
+       subtitle = "Before and after matching",
        x = "Life Expectancy (years)",
-       y = "")
+       y = "") +
+  theme(legend.position = "none")
 
 
 
